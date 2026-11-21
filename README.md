@@ -163,6 +163,8 @@ go test ./...
 go run ./cmd/grokbot
 ```
 
+Layout of note: `internal/llm` is a thin in-repo OpenAI-compatible HTTP client (custom base URL + API key, complete + SSE stream). Env vars like `OPENAI_*` name the wire protocol, not a third-party OpenAI SDK.
+
 ## License
 
 MIT

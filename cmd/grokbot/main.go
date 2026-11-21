@@ -8,7 +8,7 @@ import (
 
 	"github.com/Rachit-Gandhi/grokbot/internal/bot"
 	"github.com/Rachit-Gandhi/grokbot/internal/config"
-	"github.com/Rachit-Gandhi/grokbot/internal/openai"
+	"github.com/Rachit-Gandhi/grokbot/internal/llm"
 	"github.com/Rachit-Gandhi/grokbot/internal/store"
 )
 
@@ -33,8 +33,8 @@ func main() {
 	}
 	defer st.Close()
 
-	llm := openai.New(cfg.OpenAIBaseURL, cfg.OpenAIAPIKey)
-	b, err := bot.New(cfg, llm, st, log)
+	client := llm.New(cfg.OpenAIBaseURL, cfg.OpenAIAPIKey)
+	b, err := bot.New(cfg, client, st, log)
 	if err != nil {
 		log.Error("bot init", "err", err)
 		os.Exit(1)

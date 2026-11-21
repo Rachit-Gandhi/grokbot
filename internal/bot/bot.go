@@ -12,24 +12,24 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/Rachit-Gandhi/grokbot/internal/config"
-	"github.com/Rachit-Gandhi/grokbot/internal/openai"
+	"github.com/Rachit-Gandhi/grokbot/internal/llm"
 	"github.com/Rachit-Gandhi/grokbot/internal/store"
 )
 
 const discordMaxContent = 1900
 
-// Bot wires Discord events to the OpenAI-compatible client and session store.
+// Bot wires Discord events to the LLM client and session store.
 type Bot struct {
 	cfg    *config.Config
 	sess   *discordgo.Session
-	llm    *openai.Client
+	client *llm.Client
 	store  *store.Store
 	log    *slog.Logger
 	busy   sync.Map // threadID → struct{} while generating
 }
 
 // New creates a bot. Call Start then Open the Discord session separately via Session.
-func New(cfg *config.Config, llm *openai.Client, st *store.Store, log *slog.Logger) (*Bot, error) {
+func New(cfg *config.Config, client *llm.Client, st *store.Store, log *slog.Logger) (*Bot, error) {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -42,7 +42,7 @@ func New(cfg *config.Config, llm *openai.Client, st *store.Store, log *slog.Logg
 		discordgo.IntentsMessageContent |
 		discordgo.IntentsGuildMessageReactions
 
-	b := &Bot{cfg: cfg, sess: s, llm: llm, store: st, log: log}
+	b := &Bot{cfg: cfg, sess: s, client: client, store: st, log: log}
 	s.AddHandler(b.onReady)
 	s.AddHandler(b.onMessageCreate)
 	return b, nil
@@ -141,9 +141,9 @@ func (b *Bot) onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) 
 		return
 	}
 
-	messages := make([]openai.Message, 0, len(history)+1)
+	messages := make([]llm.Message, 0, len(history)+1)
 	if b.cfg.SystemPrompt != "" {
-		messages = append(messages, openai.Message{Role: "system", Content: b.cfg.SystemPrompt})
+		messages = append(messages, llm.Message{Role: "system", Content: b.cfg.SystemPrompt})
 	}
 	messages = append(messages, history...)
 
@@ -153,7 +153,7 @@ func (b *Bot) onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) 
 	if b.cfg.StreamReplies {
 		reply, err = b.streamReply(ctx, s, threadID, m, model, messages)
 	} else {
-		reply, err = b.llm.Complete(ctx, model, messages)
+		reply, err = b.client.Complete(ctx, model, messages)
 		if err == nil {
 			_, err = s.ChannelMessageSendReply(threadID, clip(reply, discordMaxContent), m.Reference())
 		}
@@ -171,11 +171,11 @@ func (b *Bot) onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) 
 	}
 }
 
-func (b *Bot) streamReply(ctx context.Context, s *discordgo.Session, threadID string, m *discordgo.MessageCreate, model string, messages []openai.Message) (string, error) {
+func (b *Bot) streamReply(ctx context.Context, s *discordgo.Session, threadID string, m *discordgo.MessageCreate, model string, messages []llm.Message) (string, error) {
 	placeholder, err := s.ChannelMessageSendReply(threadID, "…", m.Reference())
 	if err != nil {
 		// Fall back to non-streaming complete + send.
-		text, cerr := b.llm.Complete(ctx, model, messages)
+		text, cerr := b.client.Complete(ctx, model, messages)
 		if cerr != nil {
 			return "", cerr
 		}
@@ -203,7 +203,7 @@ func (b *Bot) streamReply(ctx context.Context, s *discordgo.Session, threadID st
 		lastEdit = time.Now()
 	}
 
-	full, err := b.llm.Stream(ctx, model, messages, func(delta string) error {
+	full, err := b.client.Stream(ctx, model, messages, func(delta string) error {
 		mu.Lock()
 		assembled.WriteString(delta)
 		mu.Unlock()
@@ -214,7 +214,7 @@ func (b *Bot) streamReply(ctx context.Context, s *discordgo.Session, threadID st
 	if err != nil {
 		// If streaming failed but we got nothing, try complete.
 		if full == "" {
-			text, cerr := b.llm.Complete(ctx, model, messages)
+			text, cerr := b.client.Complete(ctx, model, messages)
 			if cerr != nil {
 				_, _ = s.ChannelMessageEdit(threadID, placeholder.ID, "⚠️ "+clip(err.Error(), 500))
 				return "", err

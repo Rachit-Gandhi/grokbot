@@ -1,4 +1,4 @@
-package openai
+package llm
 
 import (
 	"bufio"
@@ -95,7 +95,7 @@ func (c *Client) Complete(ctx context.Context, model string, messages []Message)
 		return "", err
 	}
 	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("openai api status %d: %s", resp.StatusCode, truncate(string(raw), 500))
+		return "", fmt.Errorf("llm api status %d: %s", resp.StatusCode, truncate(string(raw), 500))
 	}
 
 	var out chatResponse
@@ -139,7 +139,7 @@ func (c *Client) Stream(ctx context.Context, model string, messages []Message, o
 
 	if resp.StatusCode >= 300 {
 		raw, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("openai api status %d: %s", resp.StatusCode, truncate(string(raw), 500))
+		return "", fmt.Errorf("llm api status %d: %s", resp.StatusCode, truncate(string(raw), 500))
 	}
 
 	var full strings.Builder

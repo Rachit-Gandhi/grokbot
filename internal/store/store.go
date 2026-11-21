@@ -10,7 +10,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/Rachit-Gandhi/grokbot/internal/openai"
+	"github.com/Rachit-Gandhi/grokbot/internal/llm"
 )
 
 // Store persists per-thread chat sessions in SQLite.
@@ -67,7 +67,7 @@ func (s *Store) Append(ctx context.Context, threadID, role, content string) erro
 }
 
 // History returns the most recent limit messages for a thread, oldest first.
-func (s *Store) History(ctx context.Context, threadID string, limit int) ([]openai.Message, error) {
+func (s *Store) History(ctx context.Context, threadID string, limit int) ([]llm.Message, error) {
 	if limit <= 0 {
 		limit = 40
 	}
@@ -83,9 +83,9 @@ SELECT role, content FROM (
 	}
 	defer rows.Close()
 
-	var out []openai.Message
+	var out []llm.Message
 	for rows.Next() {
-		var m openai.Message
+		var m llm.Message
 		if err := rows.Scan(&m.Role, &m.Content); err != nil {
 			return nil, err
 		}
