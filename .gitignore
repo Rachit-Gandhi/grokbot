@@ -1,0 +1,11 @@
+.env
+data/
+*.db
+*.db-journal
+configs/config.yaml
+bin/
+dist/
+.idea/
+.vscode/
+*.exe
+/grokbot

@@ -1,0 +1,23 @@
+[Unit]
+Description=GrokBot Discord LLM bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=grokbot
+Group=grokbot
+WorkingDirectory=/opt/grokbot
+EnvironmentFile=/opt/grokbot/.env
+ExecStart=/opt/grokbot/grokbot
+Restart=on-failure
+RestartSec=5
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/grokbot/data
+
+[Install]
+WantedBy=multi-user.target

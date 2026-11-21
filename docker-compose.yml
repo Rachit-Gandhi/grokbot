@@ -1,0 +1,15 @@
+services:
+  grokbot:
+    build: .
+    container_name: grokbot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CONFIG_PATH: /app/configs/config.yaml
+      SQLITE_PATH: /app/data/grokbot.db
+    volumes:
+      - ./data:/app/data
+      # Optional YAML overrides (copy configs/config.example.yaml → configs/config.yaml):
+      # - ./configs/config.yaml:/app/configs/config.yaml:ro
+    # No ports exposed — Discord gateway is outbound-only.
