@@ -1,0 +1,20 @@
+# Optional YAML config. Secrets should come from the environment (.env).
+# Copy to config.yaml or set CONFIG_PATH.
+
+openai_base_url: https://api.openai.com/v1
+default_model: gpt-4o-mini
+system_prompt: >
+  You are a helpful assistant in Discord. Be concise unless asked for detail.
+max_history: 40
+sqlite_path: data/grokbot.db
+stream_replies: true
+
+# Empty allowlist = all guilds. Prefer setting GUILD_ALLOWLIST in env.
+guild_allowlist: []
+
+# Explicit channel → model overrides (channel ID or exact channel name).
+# Channel topic "model: <id>" also works and does not require a restart.
+channel_models:
+  # "123456789012345678": gpt-4o
+  # "general": gpt-4o-mini
+  # "llama": llama3.2
